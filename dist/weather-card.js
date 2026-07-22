@@ -317,11 +317,11 @@ class WeatherCard extends LitElement {
     const currentTemperature = this._getSensorValue(
       this._config.current_temperature_entity
     );
-    const temperature = currentTemperature
-      ? currentTemperature.value
-      : this.getUnit("temperature") == "°F"
-      ? Math.round(stateObj.attributes.temperature)
-      : stateObj.attributes.temperature;
+    const temperature = Math.round(
+      currentTemperature
+        ? currentTemperature.value
+        : stateObj.attributes.temperature
+    );
     const temperatureUnit = currentTemperature
       ? currentTemperature.unit
       : this.getUnit("temperature");
@@ -562,7 +562,7 @@ class WeatherCard extends LitElement {
       }
 
       .spacer {
-        margin-top: 1em;
+        margin-top: 1.5em;
       }
 
       .precip-alert {
@@ -594,8 +594,8 @@ class WeatherCard extends LitElement {
       }
 
       .header .icon {
-        width: 4em;
-        height: 4em;
+        width: 5.5em;
+        height: 5.5em;
         flex-shrink: 0;
       }
 
@@ -671,7 +671,7 @@ class WeatherCard extends LitElement {
         margin: 0 auto;
         display: flex;
         border-top: 1px solid var(--divider-color);
-        padding-top: 0.8em;
+        padding-top: 1.2em;
       }
 
       .day {
