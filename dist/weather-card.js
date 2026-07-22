@@ -155,6 +155,15 @@ class WeatherCard extends LitElement {
           name: "current_wind_gust_entity",
           selector: { entity: { domain: "sensor" } },
         },
+        {
+          name: "current_rain_rate_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
+        {
+          name: "rain_alert_threshold",
+          default: 0,
+          selector: { number: {} },
+        },
       ],
     };
   }
@@ -267,6 +276,7 @@ class WeatherCard extends LitElement {
 
     return html`
       <ha-card @click="${this._handleClick}">
+        ${this.renderPrecipAlert()}
         ${this._config.current !== false ? this.renderCurrent(stateObj) : ""}
         ${this._config.details !== false
           ? this.renderDetails(stateObj, lang)
@@ -281,6 +291,22 @@ class WeatherCard extends LitElement {
             )
           : ""}
       </ha-card>
+    `;
+  }
+
+  renderPrecipAlert() {
+    const rainRate = this._getSensorValue(this._config.current_rain_rate_entity);
+    const threshold = this._config.rain_alert_threshold || 0;
+
+    if (!rainRate || rainRate.value <= threshold) {
+      return "";
+    }
+
+    return html`
+      <div class="precip-alert">
+        <ha-icon icon="mdi:weather-pouring"></ha-icon>
+        <span>Rain detected — ${rainRate.value} ${rainRate.unit}</span>
+      </div>
     `;
   }
 
@@ -537,6 +563,23 @@ class WeatherCard extends LitElement {
 
       .spacer {
         margin-top: 1em;
+      }
+
+      .precip-alert {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #fbe9dd;
+        color: #b5652b;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .precip-alert ha-icon {
+        --mdc-icon-size: 18px;
       }
 
       .header {
