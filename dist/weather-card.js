@@ -671,7 +671,11 @@ class WeatherCard extends LitElement {
         margin: 0 auto;
         display: flex;
         border-top: 1px solid var(--divider-color);
-        padding-top: 1.2em;
+        padding-top: 1.5em;
+      }
+
+      .forecast.spacer {
+        margin-top: 2.5em;
       }
 
       .day {
