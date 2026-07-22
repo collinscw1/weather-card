@@ -562,7 +562,7 @@ class WeatherCard extends LitElement {
       }
 
       .spacer {
-        margin-top: 1.5em;
+        margin-top: 0.75em;
       }
 
       .precip-alert {
