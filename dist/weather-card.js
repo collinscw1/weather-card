@@ -131,6 +131,30 @@ class WeatherCard extends LitElement {
           },
         },
         { name: "number_of_forecasts", default: 5, selector: { number: {} } },
+        {
+          name: "current_temperature_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
+        {
+          name: "current_humidity_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
+        {
+          name: "current_pressure_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
+        {
+          name: "current_wind_speed_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
+        {
+          name: "current_wind_direction_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
+        {
+          name: "current_wind_gust_entity",
+          selector: { entity: { domain: "sensor" } },
+        },
       ],
     };
   }
@@ -264,10 +288,17 @@ class WeatherCard extends LitElement {
     this.numberElements++;
 
     const name = this._config.name || stateObj.attributes.friendly_name;
-    const temperature =
-      this.getUnit("temperature") == "°F"
-        ? Math.round(stateObj.attributes.temperature)
-        : stateObj.attributes.temperature;
+    const currentTemperature = this._getSensorValue(
+      this._config.current_temperature_entity
+    );
+    const temperature = currentTemperature
+      ? currentTemperature.value
+      : this.getUnit("temperature") == "°F"
+      ? Math.round(stateObj.attributes.temperature)
+      : stateObj.attributes.temperature;
+    const temperatureUnit = currentTemperature
+      ? currentTemperature.unit
+      : this.getUnit("temperature");
 
     return html`
       <div class="header ${this.numberElements > 1 ? "spacer" : ""}">
@@ -284,7 +315,7 @@ class WeatherCard extends LitElement {
         </div>
         <div class="header-right">
           <span class="temp">${temperature}</span>
-          <span class="temp-unit">${this.getUnit("temperature")}</span>
+          <span class="temp-unit">${temperatureUnit}</span>
         </div>
       </div>
     `;
@@ -312,12 +343,38 @@ class WeatherCard extends LitElement {
       );
     }
 
+    const humidity = this._getSensorValue(
+      this._config.current_humidity_entity
+    ) || { value: stateObj.attributes.humidity, unit: "%" };
+
+    const pressure = this._getSensorValue(
+      this._config.current_pressure_entity
+    ) || {
+      value: stateObj.attributes.pressure,
+      unit: this.getUnit("air_pressure"),
+    };
+
+    const windSpeed = this._getSensorValue(
+      this._config.current_wind_speed_entity
+    ) || {
+      value: stateObj.attributes.wind_speed,
+      unit: `${this.getUnit("length")}/h`,
+    };
+
+    const windDirectionSensor = this._getSensorValue(
+      this._config.current_wind_direction_entity
+    );
+    const windBearing = windDirectionSensor
+      ? windDirectionSensor.value
+      : stateObj.attributes.wind_bearing;
     const windDirection =
-      stateObj.attributes.wind_bearing !== undefined
-        ? windDirections[
-            parseInt((stateObj.attributes.wind_bearing + 11.25) / 22.5)
-          ]
+      windBearing !== undefined
+        ? windDirections[parseInt((windBearing + 11.25) / 22.5)]
         : "";
+
+    const windGust = this._getSensorValue(
+      this._config.current_wind_gust_entity
+    );
 
     this.numberElements++;
 
@@ -326,12 +383,12 @@ class WeatherCard extends LitElement {
         <div class="details-col">
           <div class="detail">
             <ha-icon icon="mdi:water-percent"></ha-icon>
-            ${stateObj.attributes.humidity}<span class="unit"> % </span>
+            ${humidity.value}<span class="unit"> ${humidity.unit} </span>
           </div>
           <div class="detail">
             <ha-icon icon="mdi:gauge"></ha-icon>
-            ${stateObj.attributes.pressure}
-            <span class="unit"> ${this.getUnit("air_pressure")} </span>
+            ${pressure.value}
+            <span class="unit"> ${pressure.unit} </span>
           </div>
           ${next_rising
             ? html`
@@ -346,17 +403,13 @@ class WeatherCard extends LitElement {
           <div class="detail">
             <ha-icon icon="mdi:weather-windy"></ha-icon>
             ${windDirection}
-            ${stateObj.attributes.wind_speed}<span class="unit">
-              ${this.getUnit("length")}/h
-            </span>
+            ${windSpeed.value}<span class="unit"> ${windSpeed.unit} </span>
           </div>
-          ${stateObj.attributes.wind_gust_speed !== undefined
+          ${windGust
             ? html`
                 <div class="detail">
                   <ha-icon icon="mdi:weather-windy-variant"></ha-icon>
-                  ${stateObj.attributes.wind_gust_speed}<span class="unit">
-                    ${this.getUnit("length")}/h
-                  </span>
+                  ${windGust.value}<span class="unit"> ${windGust.unit} </span>
                 </div>
               `
             : ""}
@@ -421,6 +474,20 @@ class WeatherCard extends LitElement {
           )}
       </div>
     `;
+  }
+
+  _getSensorValue(entityId) {
+    if (!entityId) {
+      return undefined;
+    }
+    const stateObj = this.hass.states[entityId];
+    if (!stateObj || isNaN(parseFloat(stateObj.state))) {
+      return undefined;
+    }
+    return {
+      value: parseFloat(stateObj.state),
+      unit: stateObj.attributes.unit_of_measurement || "",
+    };
   }
 
   getWeatherIcon(condition, sun) {
