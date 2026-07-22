@@ -263,25 +263,29 @@ class WeatherCard extends LitElement {
   renderCurrent(stateObj) {
     this.numberElements++;
 
+    const name = this._config.name || stateObj.attributes.friendly_name;
+    const temperature =
+      this.getUnit("temperature") == "°F"
+        ? Math.round(stateObj.attributes.temperature)
+        : stateObj.attributes.temperature;
+
     return html`
-      <div class="current ${this.numberElements > 1 ? "spacer" : ""}">
-        <span
-          class="icon bigger"
-          style="background: none, url('${this.getWeatherIcon(
-            stateObj.state.toLowerCase(),
-            this.hass.states["sun.sun"]
-          )}') no-repeat; background-size: contain;"
-          >${stateObj.state}
-        </span>
-        ${this._config.name
-          ? html` <span class="title"> ${this._config.name} </span> `
-          : ""}
-        <span class="temp"
-          >${this.getUnit("temperature") == "°F"
-            ? Math.round(stateObj.attributes.temperature)
-            : stateObj.attributes.temperature}</span
-        >
-        <span class="tempc"> ${this.getUnit("temperature")}</span>
+      <div class="header ${this.numberElements > 1 ? "spacer" : ""}">
+        <div class="header-left">
+          <img
+            class="icon"
+            src="${this.getWeatherIcon(
+              stateObj.state.toLowerCase(),
+              this.hass.states["sun.sun"]
+            )}"
+            alt="${stateObj.state}"
+          />
+          <span class="name">${name}</span>
+        </div>
+        <div class="header-right">
+          <span class="temp">${temperature}</span>
+          <span class="temp-unit">${this.getUnit("temperature")}</span>
+        </div>
       </div>
     `;
   }
@@ -308,48 +312,64 @@ class WeatherCard extends LitElement {
       );
     }
 
+    const windDirection =
+      stateObj.attributes.wind_bearing !== undefined
+        ? windDirections[
+            parseInt((stateObj.attributes.wind_bearing + 11.25) / 22.5)
+          ]
+        : "";
+
     this.numberElements++;
 
     return html`
-      <ul class="variations ${this.numberElements > 1 ? "spacer" : ""}">
-        <li>
-          <ha-icon icon="mdi:water-percent"></ha-icon>
-          ${stateObj.attributes.humidity}<span class="unit"> % </span>
-        </li>
-        <li>
-          <ha-icon icon="mdi:weather-windy"></ha-icon> ${windDirections[
-            parseInt((stateObj.attributes.wind_bearing + 11.25) / 22.5)
-          ]}
-          ${stateObj.attributes.wind_speed}<span class="unit">
-            ${this.getUnit("length")}/h
-          </span>
-        </li>
-        <li>
-          <ha-icon icon="mdi:gauge"></ha-icon>
-          ${stateObj.attributes.pressure}
-          <span class="unit"> ${this.getUnit("air_pressure")} </span>
-        </li>
-        <li>
-          <ha-icon icon="mdi:weather-fog"></ha-icon> ${stateObj.attributes
-            .visibility}<span class="unit"> ${this.getUnit("length")} </span>
-        </li>
-        ${next_rising
-          ? html`
-              <li>
-                <ha-icon icon="mdi:weather-sunset-up"></ha-icon>
-                ${next_rising}
-              </li>
-            `
-          : ""}
-        ${next_setting
-          ? html`
-              <li>
-                <ha-icon icon="mdi:weather-sunset-down"></ha-icon>
-                ${next_setting}
-              </li>
-            `
-          : ""}
-      </ul>
+      <div class="details ${this.numberElements > 1 ? "spacer" : ""}">
+        <div class="details-col">
+          <div class="detail">
+            <ha-icon icon="mdi:water-percent"></ha-icon>
+            ${stateObj.attributes.humidity}<span class="unit"> % </span>
+          </div>
+          <div class="detail">
+            <ha-icon icon="mdi:gauge"></ha-icon>
+            ${stateObj.attributes.pressure}
+            <span class="unit"> ${this.getUnit("air_pressure")} </span>
+          </div>
+          ${next_rising
+            ? html`
+                <div class="detail">
+                  <ha-icon icon="mdi:weather-sunset-up"></ha-icon>
+                  ${next_rising}
+                </div>
+              `
+            : ""}
+        </div>
+        <div class="details-col">
+          <div class="detail">
+            <ha-icon icon="mdi:weather-windy"></ha-icon>
+            ${windDirection}
+            ${stateObj.attributes.wind_speed}<span class="unit">
+              ${this.getUnit("length")}/h
+            </span>
+          </div>
+          ${stateObj.attributes.wind_gust_speed !== undefined
+            ? html`
+                <div class="detail">
+                  <ha-icon icon="mdi:weather-windy-variant"></ha-icon>
+                  ${stateObj.attributes.wind_gust_speed}<span class="unit">
+                    ${this.getUnit("length")}/h
+                  </span>
+                </div>
+              `
+            : ""}
+          ${next_setting
+            ? html`
+                <div class="detail">
+                  <ha-icon icon="mdi:weather-sunset-down"></ha-icon>
+                  ${next_setting}
+                </div>
+              `
+            : ""}
+        </div>
+      </div>
     `;
   }
 
@@ -360,7 +380,7 @@ class WeatherCard extends LitElement {
 
     this.numberElements++;
     return html`
-      <div class="forecast clear ${this.numberElements > 1 ? "spacer" : ""}">
+      <div class="forecast ${this.numberElements > 1 ? "spacer" : ""}">
         ${forecast.forecast
           .slice(
             0,
@@ -381,39 +401,18 @@ class WeatherCard extends LitElement {
                         weekday: "short",
                       })}
                 </div>
-                <i
+                <img
                   class="icon"
-                  style="background: none, url('${this.getWeatherIcon(
-                    daily.condition.toLowerCase()
-                  )}') no-repeat; background-size: contain"
-                ></i>
-                <div class="highTemp">
+                  src="${this.getWeatherIcon(daily.condition.toLowerCase())}"
+                  alt="${daily.condition}"
+                />
+                <div class="high-temp">
                   ${daily.temperature}${this.getUnit("temperature")}
                 </div>
                 ${daily.templow !== undefined
                   ? html`
-                      <div class="lowTemp">
+                      <div class="low-temp">
                         ${daily.templow}${this.getUnit("temperature")}
-                      </div>
-                    `
-                  : ""}
-                ${!this._config.hide_precipitation &&
-                daily.precipitation !== undefined &&
-                daily.precipitation !== null
-                  ? html`
-                      <div class="precipitation">
-                        ${Math.round(daily.precipitation * 10) / 10}
-                        ${this.getUnit("precipitation")}
-                      </div>
-                    `
-                  : ""}
-                ${!this._config.hide_precipitation &&
-                daily.precipitation_probability !== undefined &&
-                daily.precipitation_probability !== null
-                  ? html`
-                      <div class="precipitation_probability">
-                        ${Math.round(daily.precipitation_probability)}
-                        ${this.getUnit("precipitation_probability")}
                       </div>
                     `
                   : ""}
@@ -465,97 +464,92 @@ class WeatherCard extends LitElement {
       ha-card {
         cursor: pointer;
         margin: auto;
-        overflow: hidden;
-        padding-top: 1.3em;
-        padding-bottom: 1.3em;
-        padding-left: 1em;
-        padding-right: 1em;
+        padding: 1em;
         position: relative;
       }
 
       .spacer {
-        padding-top: 1em;
+        margin-top: 1em;
       }
 
-      .clear {
-        clear: both;
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
 
-      .title {
-        position: absolute;
-        left: 3em;
-        font-weight: 300;
-        font-size: 3em;
+      .header-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .header .icon {
+        width: 4em;
+        height: 4em;
+        flex-shrink: 0;
+      }
+
+      .header .name {
+        font-size: 1.8em;
+        font-weight: 400;
         color: var(--primary-text-color);
+        margin-left: 0.3em;
       }
 
-      .temp {
-        font-weight: 300;
-        font-size: 4em;
-        color: var(--primary-text-color);
-        position: absolute;
-        right: 1em;
+      .header-right {
+        display: flex;
+        align-items: flex-start;
       }
 
-      .tempc {
+      .header .temp {
+        font-size: 3.2em;
         font-weight: 300;
-        font-size: 1.5em;
-        vertical-align: super;
         color: var(--primary-text-color);
-        position: absolute;
-        right: 1em;
-        margin-top: -14px;
-        margin-right: 7px;
+        line-height: 1;
+      }
+
+      .header .temp-unit {
+        font-size: 1.4em;
+        font-weight: 400;
+        margin-top: 0.2em;
+        color: var(--primary-text-color);
       }
 
       @media (max-width: 460px) {
-        .title {
-          font-size: 2.2em;
-          left: 4em;
+        .header .name {
+          font-size: 1.3em;
         }
-        .temp {
-          font-size: 3em;
+        .header .temp {
+          font-size: 2.4em;
         }
-        .tempc {
-          font-size: 1em;
+        .header .temp-unit {
+          font-size: 1.1em;
         }
       }
 
-      .current {
-        padding: 1.2em 0;
-        margin-bottom: 3.5em;
-      }
-
-      .variations {
+      .details {
         display: flex;
-        flex-flow: row wrap;
         justify-content: space-between;
-        font-weight: 300;
+        padding: 0 0.3em;
+        font-size: 0.9em;
         color: var(--primary-text-color);
-        list-style: none;
-        padding: 0 1em;
-        margin: 0;
       }
 
-      .variations ha-icon {
-        height: 22px;
-        margin-right: 5px;
+      .details-col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4em;
+      }
+
+      .detail {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+      }
+
+      .detail ha-icon {
+        --mdc-icon-size: 18px;
         color: var(--paper-item-icon-color);
-      }
-
-      .variations li {
-        flex-basis: auto;
-        width: 50%;
-      }
-
-      .variations li:nth-child(2n) {
-        text-align: right;
-      }
-
-      .variations li:nth-child(2n) ha-icon {
-        margin-right: 0;
-        margin-left: 8px;
-        float: right;
       }
 
       .unit {
@@ -566,6 +560,8 @@ class WeatherCard extends LitElement {
         width: 100%;
         margin: 0 auto;
         display: flex;
+        border-top: 1px solid var(--divider-color);
+        padding-top: 0.8em;
       }
 
       .day {
@@ -573,13 +569,16 @@ class WeatherCard extends LitElement {
         display: block;
         text-align: center;
         color: var(--primary-text-color);
-        border-right: 0.1em solid #d9d9d9;
+        border-right: 1px solid var(--divider-color);
         line-height: 2;
         box-sizing: border-box;
       }
 
       .dayname {
         text-transform: uppercase;
+        font-size: 0.8em;
+        font-weight: 500;
+        color: var(--secondary-text-color);
       }
 
       .forecast .day:first-child {
@@ -591,49 +590,17 @@ class WeatherCard extends LitElement {
         margin-right: 0;
       }
 
-      .highTemp {
-        font-weight: bold;
+      .day .icon {
+        width: 2.5em;
+        height: 2.5em;
       }
 
-      .lowTemp {
+      .high-temp {
+        font-weight: 600;
+      }
+
+      .low-temp {
         color: var(--secondary-text-color);
-      }
-
-      .precipitation {
-        color: var(--primary-text-color);
-        font-weight: 300;
-      }
-
-      .icon.bigger {
-        width: 10em;
-        height: 10em;
-        margin-top: -4em;
-        position: absolute;
-        left: 0em;
-      }
-
-      .icon {
-        width: 50px;
-        height: 50px;
-        margin-right: 5px;
-        display: inline-block;
-        vertical-align: middle;
-        background-size: contain;
-        background-position: center center;
-        background-repeat: no-repeat;
-        text-indent: -9999px;
-      }
-
-      .weather {
-        font-weight: 300;
-        font-size: 1.5em;
-        color: var(--primary-text-color);
-        text-align: left;
-        position: absolute;
-        top: -0.5em;
-        left: 6em;
-        word-wrap: break-word;
-        width: 30%;
       }
     `;
   }
